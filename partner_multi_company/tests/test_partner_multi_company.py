@@ -146,6 +146,19 @@ class TestPartnerMultiCompany(common.TransactionCase):
         with self.assertRaises(AccessError):
             self.partner_company_1.with_user(self.user_company_2).name = "Test"
 
+    def test_narrowed_active_selection_does_not_hide_own_companies(self):
+        # Visibility must depend on which companies the user actually
+        # belongs to, not on which ones happen to be checked in the
+        # company switcher right now. A user genuinely assigned to both
+        # companies must still read a company-1-only partner even with
+        # only company 2 active in the switcher.
+        self.user_company_1.company_ids = (self.company_1 + self.company_2).ids
+        narrowed = self.partner_company_1.with_user(self.user_company_1).with_context(
+            allowed_company_ids=self.company_2.ids
+        )
+        narrowed.invalidate_recordset()
+        self.assertEqual(narrowed.name, self.partner_company_1.sudo().name)
+
     def test_uninstall(self):
         from ..hooks import uninstall_hook
 
